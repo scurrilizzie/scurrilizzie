@@ -1,0 +1,377 @@
+import gifAnimation.*;
+import processing.serial.*;
+import hypermedia.video.*;
+import java.awt.Rectangle;
+import processing.serial.*;
+import processing.opengl.*;
+import glitchP5.*; // import GlitchP5
+
+
+import java.util.Iterator;
+import org.rsg.carnivore.*;
+import org.rsg.carnivore.net.*;
+import org.rsg.lib.Log;
+
+CarnivoreP5 c;
+
+long currentTime;
+long lastTime;
+long average; //!!!!!!!
+
+long[] elapsedTimes = new long [5]; // store 10 readings .
+int elapsedIndex = 0;
+
+
+
+
+
+Scissors serialParser;
+
+PImage[] animation;
+Gif loopingGif;
+Gif nonLoopingGif;
+boolean pause = false;
+
+GlitchP5 glitchP5;
+Serial my_port;                           
+Serial port;
+OpenCV opencv;
+int width = 500*2;
+int height = 375*2;
+int ldr;  
+//int s = 
+
+void setup() {
+
+  size(width, height, P3D);
+  frameRate(200);
+  loopingGif = new Gif(this, "bender_dancecopy.gif");
+  loopingGif.loop();
+  animation = Gif.getPImages(this, "bender_dancecopy.gif");
+
+  glitchP5 = new GlitchP5(this);
+  opencv = new OpenCV(this);
+  opencv.capture(width, height);
+  //  opencv.cascade(OpenCV.CASCADE_PROFILEFACE);
+  opencv.cascade( OpenCV.CASCADE_FRONTALFACE_ALT );
+  
+  
+  println(Serial.list());
+  String portName = Serial.list()[0];
+  
+  my_port = new Serial( this, portName, 9600 );  
+  serialParser = new Scissors( my_port);
+
+
+//terminalInFinder = loadImage("terminalInFinder.png");
+//terminalSudoCommand = loadImage("terminalSudoCommand.png");
+
+Log.setDebug(true); // Uncomment this for verbose mode
+c = new CarnivoreP5(this);
+
+
+  background(255);
+}
+
+public void stop() {
+
+  opencv.stop();
+  super.stop();
+}
+
+void draw() {
+  if(c.isMacAndPromiscuousModeFailed) {
+    drawError();
+} 
+
+  //  background(255);
+
+  // grab a new frame
+  opencv.read();
+//  opencv.flip( OpenCV.FLIP_HORIZONTAL );
+
+  // proceed detection
+  Rectangle[] faces = opencv.detect(1.2, 2, OpenCV.HAAR_DO_CANNY_PRUNING, 40, 40);
+
+  // display the image
+
+
+  // draw face area(s)
+  noFill();
+  stroke(255,0,0);
+  strokeWeight(1);
+
+
+  // my_port.read();// this reads cereal   
+
+  if ( serialParser.update() > 0 ) { 
+    
+    ldr =   serialParser.getInt(2); // cup 2 == the time for a crank
+   
+  }
+
+  println("message from arduino " + ldr);
+  
+  
+  
+  
+  if ( (average - ldr) < 400  ) { // networktime - revolution time > 0 means 
+                    // change the comparison number to change effort to win smaller == easier
+  
+    image(opencv.image(), 0,0, width, height);
+    image( opencv.image(OpenCV.SOURCE), 0, 0 );
+    fill(0, 255, 0);
+    ellipse(50, 50, 25, 25);
+  }
+  else {
+    image(opencv.image(), 0, 0, width, height);
+    image( opencv.image(OpenCV.SOURCE), 0, 0 );
+    for( int i=0; i<faces.length; i++ ) {
+      //rect( faces[i].x, faces[i].y, faces[i].width*3, faces[i].height*3 );
+      //glitchP5.glitch(faces[i].x, faces[i].y*2, 120, 130, 200, 100, 8, 1.0f, 6, 1);
+      glitchP5.glitch(faces[i].x, faces[i].y*2, 400, 150, 200, 200, 8, 10.0f, 6, 1);
+    }
+
+    float[] angle = new float[12];
+    float[] increase = new float[12];
+    for(int i = 0; i < angle.length; i++) {
+      angle[i]+=increase[i];
+    }
+    image(loopingGif, 10, height / 2 - loopingGif.height / 2);
+    image(animation[(int) (animation.length / (float) (width) * mouseX)], width - 10 - animation[0].width, height / 2 - animation[0].height / 2);
+
+    glitchP5.run(); // this needs to be at the end of draw(). anything after it will not be drawn to the scre
+  }
+}
+//void serialEvent(Serial myPort) {
+//  ldr = myPort.read();
+//}
+
+
+// Called each time a new packet arrives
+synchronized void packetEvent(CarnivorePacket packet){
+
+currentTime = millis();
+long elapsedTime = currentTime - lastTime;
+println("elapsed time " + elapsedTime);
+if ( elapsedTime > 3 ) {
+elapsedTimes[elapsedIndex] = elapsedTime;
+elapsedIndex = (elapsedIndex+1) % 5;
+}
+
+long sum=0;
+for (int i = 0; i < 5 ; i++ ) {
+sum += elapsedTimes[i];
+}
+
+average = sum/5;
+println(" network average " + average);
+
+lastTime = currentTime;
+
+
+// println("[PDE] packetEvent: " + packet);
+
+// Remember these nodes in our hash map
+//nodes.put(packet.receiverAddress.toString(), str(startDiameter));
+//nodes.put(packet.senderAddress.toString(), str(startDiameter));
+}
+
+
+void drawError(){
+int x = width/2 - 200;
+int y = 75;
+int lineheight = 32;
+
+background(255);
+fill(0, 102, 153);
+text("Please initialize packet sniffing.", x, y);
+y += lineheight*2;
+
+text("Step 1--Open the Terminal.", x, y);
+y += 20;
+
+//image(terminalInFinder, x, y);
+y += lineheight*4.5;
+
+text("Step 2--Type this command:", x, y);
+y += lineheight;
+
+fill(0);
+text("sudo chmod 777 /dev/bpf*", x, y);
+y += 10;
+
+//image(terminalSudoCommand, x-33, y);
+y += lineheight*6;
+
+fill(0, 102, 153);
+text("Step 3--Quit and relaunch.", x, y);
+y += lineheight;
+
+}
+
+//---------------------SCISSORS-------------------------
+
+import processing.net.* ;
+import processing.serial.*;
+
+class Scissors {
+  
+ // package variables
+  char START_BYTE  =  '*' ;   //  42 = * 
+  char DELIMITER   =  ',' ;   //  44 = ,  
+  char END_BYTE    =  '#';   //  35 = # 
+  char WHITE_SPACE =  ' ';   //  32 = ' ' 
+  
+  String TOKENS = new String( "" + START_BYTE + DELIMITER + END_BYTE);  // MAKE A STRING OF TOKENS
+  
+  String incomingData;
+  String[] parsedData;
+  
+  int TYPE = -1;
+
+  Server server;
+  Client c;
+  Serial s;
+
+  
+  boolean DEBUG = false;
+
+  Scissors (Client _c ) {
+       TYPE = 1; 
+       c= _c;
+    
+  }
+  
+  Scissors (Serial _s) {
+      TYPE = 2;
+      s = _s;
+  }
+
+  Scissors (Server _server) {
+      TYPE = 3;
+      server = _server;
+  }
+  
+  int update(){
+	
+		if (TYPE == 3 ) {
+			// see if any clients have spoken to the server.
+			  Client serverClient = server.available();
+
+		      if (serverClient != null ) {
+			
+				incomingData = serverClient.readStringUntil( END_BYTE );
+				
+				if (DEBUG) {
+					println("SERVER INCOMING data stream (raw)  " +incomingData);
+				}
+				
+			    serverClient.clear();
+		         
+		      }  // if serverClient
+		
+		      
+		
+	    } // end type = 3
+          
+       
+          if (TYPE == 1 ) {
+              incomingData = c.readStringUntil( END_BYTE );
+              if (DEBUG) {
+              println("CLIENT INCOMING data stream (raw)  " +incomingData);
+              }
+          }  /// end type =2 
+          
+          
+          if (TYPE == 2 ) {
+              incomingData = s.readStringUntil( END_BYTE );
+              if (DEBUG) {
+              println("SERIAL data stream (raw)  " +incomingData);
+              }
+              
+          }
+        
+        
+          if( incomingData != null ){   // make sure you have something
+          
+            int startPos = incomingData.indexOf( START_BYTE );
+            int endPos   = incomingData.indexOf( END_BYTE )  ;
+            if (DEBUG) {
+            println( "start " + startPos + " end " + endPos);
+            }
+            
+                if ( ( startPos >= 0 ) && ( endPos > startPos ) ){ // make sure the something has a start and end
+                 
+                    incomingData = incomingData.substring(startPos,endPos);
+                    parsedData = splitTokens( incomingData, TOKENS  ); 
+                } 
+                else {
+                    if (DEBUG) {
+                      println("incomplete message");
+                    }
+                     return -1;
+                }
+              
+          } // end IF
+          else {
+            if(DEBUG) {
+            println("Stream Error");
+            }
+            return -1;
+          }
+      
+      
+     if (TYPE == 1)  c.clear();
+     if (TYPE == 2)  s.clear();
+    
+     
+     return parsedData.length;
+      
+   }  // end read net packet
+ 
+ 
+  String getString(int position) {
+    return parsedData[position];
+  } 
+  
+  float getFloat(int position) {
+    return Float.parseFloat( parsedData[position] );
+  } 
+  
+  int getInt(int position) {
+    
+    return Integer.parseInt( parsedData[position] );
+  } 
+ 
+  // getters and setters
+  void setStartByte(char s) {
+    START_BYTE = s;
+  }
+   void setEndByte(char e) {
+     END_BYTE = e;
+  }
+   void setDelimiter(char d) {
+     DELIMITER = d;
+  }
+ 
+ 
+  char getStartByte() {
+      return START_BYTE;
+  }
+  
+  char getEndByte() {
+     return END_BYTE;
+  }
+  
+  char getDelimiter() {
+     return DELIMITER;
+  }
+
+  String getRaw() {
+	      
+	      return incomingData;
+  }
+  
+  
+} // end class
