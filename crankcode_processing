@@ -115,8 +115,10 @@ void draw() {
   
   
   
-  if ( (average - ldr) < 400  ) { // networktime - revolution time > 0 means 
+  if ( (average - ldr) < 100  ) { // networktime - revolution time > 0 means 
                     // change the comparison number to change effort to win smaller == easier
+//****we changed this number a lot according to online traffic. i have left it at a hundred, though this
+//is not always the most ideal threshold****
   
     image(opencv.image(), 0,0, width, height);
     image( opencv.image(OpenCV.SOURCE), 0, 0 );
@@ -165,6 +167,7 @@ sum += elapsedTimes[i];
 }
 
 average = sum/5;
+//this divisor of sum is another number we played with. in certain traffic it worked better when divided by four//
 println(" network average " + average);
 
 lastTime = currentTime;
