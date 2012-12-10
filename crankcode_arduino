@@ -1,0 +1,59 @@
+  boolean b = false;
+  
+  int photocellPin = 0;
+  int currentVal = 0;
+  int oldPhotoVal = 0;
+  
+  int currentTime, lastTime, elapsedTime, testTime;
+  
+  int value = 0;
+  
+  int threshold = 200;
+  
+  int score = 200;
+  
+#include <Glue.h>
+
+
+Glue messageToServer;
+ 
+void setup(){
+  pinMode(photocellPin, INPUT);
+  
+  Serial.begin(9600);
+   messageToServer.create();
+}
+
+void loop(){
+  
+  currentVal = analogRead(photocellPin);
+  
+    if ( (currentVal < threshold) && ( oldPhotoVal > threshold) ) {  
+      // falling edge -- we ahve seen teh photo cell.
+      
+      score += 20;
+      currentTime = millis();
+      elapsedTime = currentTime - lastTime;
+      if  (elapsedTime < 0 )  elapsedTime = 0;
+      
+      
+    } else {      
+    
+       score--;
+       if ( score < 0) score = 0;
+
+    } // end else
+
+      messageToServer.clear();
+      messageToServer.add("photocell"); // string prefix
+    //  messageToServer.add( currentVal );   // actual value
+      messageToServer.add( score );   // actual value
+      messageToServer.add( elapsedTime);   // actual value
+     
+      Serial.println( messageToServer.getPackage()) ;
+ 
+  delay(50);
+  
+  oldPhotoVal = currentVal;
+  lastTime = currentTime;
+}
