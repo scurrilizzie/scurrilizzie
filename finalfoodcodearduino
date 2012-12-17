@@ -1,0 +1,54 @@
+int switchPin1 = 7; 
+int switchPin2 = 8; 
+int switchPin3 = 9; 
+
+int LEDPin = 13;
+
+int val;
+
+
+void setup() { 
+  pinMode (switchPin1, INPUT); 
+  pinMode (switchPin2, INPUT); 
+  pinMode (switchPin3, INPUT);  
+  Serial.begin(9600);
+
+}
+void loop() { 
+  
+  
+    Serial.write(val);
+
+  if (digitalRead(switchPin1) == HIGH) {
+    val = 1;
+    // digitalWrite(LEDPin, LOW);
+  }
+  else{
+  }
+
+  if (digitalRead(switchPin2) == HIGH) {
+    val = 2;
+    //digitalWrite(LEDPin, LOW);
+  }
+  else{
+  }
+
+
+  if (digitalRead(switchPin3) == HIGH) {
+    val = 3;
+    //digitalWrite(LEDPin, LOW);
+  }
+  else{
+  }
+
+
+//else {
+//Serial.write(0); 
+//digitalWrite(LEDPin, HIGH);
+//  
+// }
+Serial.println(val);
+
+
+
+}
