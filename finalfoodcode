@@ -1,0 +1,95 @@
+import processing.serial.*;
+import processing.video.*;
+
+Serial port; 
+int val; 
+
+int actualSecs;
+//int startSec = 0;
+//int screenSecs;
+//int restartSecs = 0;
+
+//used http://www.openprocessing.org/sketch/78610 as reference
+
+Movie myMovie;
+Movie myMovie2;
+Movie myMovie3;
+
+PFont font;
+PFont font2;
+
+
+void setup() { 
+  size(650, 380, P2D);
+  smooth(); 
+  noStroke(); 
+  font = loadFont("ACaslonPro-SemiboldItalic-24.vlw");
+  font2 = loadFont("Dialog-18.vlw");
+  frameRate(10); 
+  println(Serial.list()); 
+  // print a list of all available ports
+  port = new Serial(this, Serial.list()[0], 9600);
+  myMovie = new Movie(this, "chickenfinal.m4v");
+  myMovie2 = new Movie(this, "cowfinal.m4v");
+  myMovie3 = new Movie(this, "porkfinal.m4v");
+
+
+
+
+
+
+  // choose the port to which the Arduino is connected // on the PC this is usually COM1, on the Macintosh // this is usually tty.usbserial-XXX
+}
+void draw() { 
+  actualSecs = millis()/1000;
+  //screenSecs = actualSecs - restartSecs;
+
+
+  while ( port.available () > 0) {
+    val = port.read();
+    println(val);
+  } 
+
+  if ( val == 1) {
+    image(myMovie, 0, 0);
+    myMovie.loop();
+    println(val);
+    //restartSecs = actualSecs;
+    //screenSecs = startSec;
+  }
+
+  else if ( val == 2) {
+
+    image(myMovie2, 0, 0);
+    myMovie2.loop();
+    println(val);
+    //restartSecs = actualSecs;
+    //screenSecs = startSec;
+  } 
+
+  else if (val == 3) {
+
+    image(myMovie3, 0, 0); 
+    myMovie3.loop(); 
+    println(val);
+    //restartSecs = actualSecs;
+    //screenSecs = startSec;
+  }
+  else {
+    fill(0);
+    rect(0, 0, 650, 380);
+  }
+  textFont(font);
+  fill(255);
+  text("Tab", 450, 325);
+
+
+  println(actualSecs);  
+  textFont(font2);
+  fill(255);
+  text(actualSecs, 450, 350);
+  //text(nf(screenSecs, 2), 450, 450);
+}
+void movieEvent(Movie m) {
+  m.read();
+}
